@@ -54,7 +54,10 @@ def do(cmd, dry=None):
         dry = DRY
 
     cmd = _convert_to_str(cmd)
+    # Replace multiple whitespace with single one
+    cmd = ' '.join(cmd.split())
     print 'CMD > ' + cmd
+
     if dry is False:
         cmd = _convert_str_to_lst(cmd)
         subprocess.check_call(cmd)
@@ -87,13 +90,16 @@ python -m pip install --user docker
     client = docker.from_env()
 
     print 'BUILDING ...'
+    ## FIXME: currently, it assumes that Docker container is Debian-based - i.e. using APT as the package manager
+    cmd = '/bin/sh -c "apt update; apt install -y build-essential; {}"'.format(cmd)
     logs = client.containers.run(docker_image, cmd, remove=True, volumes=vol_dict)
     print logs
 
-    ## Detach mode is not working as expectation. Reason is unknown yet.
-    # container = client.containers.run('gcc:5.2', cmd, volumes=vol_dict, detach=True)
-    # container.logs()
-    # container.stop()
+    ## Detach mode is not enabled
+    # container = client.containers.run(docker_image, command='sleep 10m', detach=True, volumes=vol_dict)
+    # cmd = '/bin/sh -c "apt update; apt install -y build-essential; {}"'.format(cmd)
+    # res = container.exec_run(cmd)
+    # print res.output
 
 
 def build(makedir, makefile, target, parallel, docker_image=None):
@@ -148,7 +154,7 @@ def main():
         dest='makefile',
         action='store',
         default='Makefile',
-        help='Specify the name of makefile and build the binary.')
+        help='Specify the name of makefile and build the binary. Default is Makefile.')
     parser.add_argument('target', help='Build target name in Makefile.')
 
     args = parser.parse_args()
